@@ -43,7 +43,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;borde
 .status{font-size:11px;color:#ebe6ff;max-width:60%;min-height:28px;display:flex;align-items:center;font-weight:800}
 .actions{display:flex;gap:8px}.actions .btn3d{height:36px;font-size:15px;border-radius:12px}
 .toast{position:absolute;top:84px;left:50%;transform:translate(-50%,-10px);background:var(--deep);color:#fff;border:3px solid #fff;padding:8px 15px;border-radius:14px;z-index:9;font-size:12px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90%;width:max-content;box-shadow:0 4px 0 #0004}.toast.show{opacity:1;transform:translate(-50%,0)}
-.flying{position:fixed;width:23px;height:23px;pointer-events:none;z-index:15}
+.flying.ghost{filter:blur(1px)}.flying{position:fixed;width:23px;height:23px;pointer-events:none;z-index:15}
 .overlay{position:absolute;inset:0;z-index:30;background:#1d0c62a8;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}.overlay[hidden]{display:none}
 .modal{width:100%;max-width:360px;text-align:center;background:linear-gradient(#fff,#ebe7ff);color:var(--deep);border:4px solid #fff;box-shadow:0 8px 0 #2a1773aa,0 30px 80px #0006;border-radius:28px;padding:24px 20px 18px;max-height:100%;overflow:auto}
 .modal h2{font:30px/1.1 var(--disp);color:var(--violet);margin:6px 0 8px;letter-spacing:.3px}
@@ -392,9 +392,9 @@ function tickJuice(dt){
  if(state.status!=='playing')brushQueue=[];
 }
 function landingFX(targetId,type,complete=false){const dest=$(targetId);if(!dest)return;
- dest.animate([{transform:'scale(1)'},{transform:'scale(1.07,.9)',offset:.22},{transform:'scale(.97,1.06)',offset:.55},{transform:'scale(1)'}],{duration:240,easing:'ease-out'});
+ dest.animate([{transform:'scale(1)'},{transform:'translateY(4px) scale(1.12,.84)',offset:.18},{transform:'translateY(-3px) scale(.95,1.08)',offset:.5},{transform:'scale(1.02,.98)',offset:.78},{transform:'scale(1)'}],{duration:300,easing:'ease-out'});
  softSound(complete?'box':'land');const cn=dest.querySelector&&dest.querySelector('.counter');if(cn)cn.animate([{transform:'scale(1.45)',color:'#fff6b0'},{transform:'scale(1)'}],{duration:180,easing:'cubic-bezier(.3,1.8,.5,1)'});
- if(reducedMotion)return;const r=dest.getBoundingClientRect();for(let i=0;i<4;i++){const n=document.createElement('i');n.className='landing-spark';n.style.background=hex(type);n.style.left=(r.left+r.width/2)+'px';n.style.top=(r.top+r.height*.4)+'px';document.body.appendChild(n);const dx=(i-1.5)*14,a=n.animate([{opacity:.9,transform:'translate(0,0) scale(1)'},{opacity:0,transform:`translate(${dx}px,-${16+(i%2)*12}px) scale(.25)`}],{duration:240,easing:'ease-out'});a.onfinish=()=>n.remove();}
+ if(reducedMotion)return;const r=dest.getBoundingClientRect();for(let i=0;i<6;i++){const n=document.createElement('i');n.className='landing-spark';n.style.background=hex(type);n.style.left=(r.left+r.width/2)+'px';n.style.top=(r.top+r.height*.4)+'px';document.body.appendChild(n);const dx=(i-2.5)*13,a=n.animate([{opacity:.9,transform:'translate(0,0) scale(1)'},{opacity:0,transform:`translate(${dx}px,-${16+(i%2)*12}px) scale(.25)`}],{duration:240,easing:'ease-out'});a.onfinish=()=>n.remove();}
 }
 function boxDeparture(lane,type,cap){const el=$('order'+lane);if(!el)return;const r=el.getBoundingClientRect(),clone=el.cloneNode(true);clone.removeAttribute('id');clone.classList.add('shipping-order');clone.style.cssText+=`;position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0;z-index:16;pointer-events:none;--c:${hex(type)}`;const counter=clone.querySelector('.counter');if(counter)counter.textContent='✓';const bar=clone.querySelector('.bar i');if(bar)bar.style.width='100%';const name=clone.querySelector('.colorname');if(name)name.textContent=level.palette[type].name;document.body.appendChild(clone);const a=clone.animate([{transform:'scale(1)',opacity:1},{transform:'translateY(-6px) scale(1.06)',opacity:1,offset:.35},{transform:'translateY(-28px) scale(.85)',opacity:0}],{duration:240,delay:240,fill:'forwards',easing:'ease-out'});a.onfinish=()=>clone.remove();}
 
@@ -427,8 +427,18 @@ function load(index){generation++;cancelMotion();levelIndex=index;level=levels[i
 function screenPoint(id){const p=basePos[id].clone();world.updateMatrixWorld(true);world.localToWorld(p);p.project(camera);const r=cv.getBoundingClientRect();return{x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2};}
 function fly(id,start,targetId,delay=0,complete=false){const dest=$(targetId);if(!dest)return;const stamp=generation,type=level.cells[id].type,r=dest.getBoundingClientRect(),n=document.createElement('div'),size=start.size||25;
  n.className='flying juice-cube';n.style.setProperty('--c',hex(type));n.style.setProperty('--size',size+'px');n.style.width=n.style.height=size+'px';n.style.left=(start.x-size/2)+'px';n.style.top=(start.y-size/2)+'px';n.innerHTML='<div class="flight-body"><i class="cube-face cube-front"></i><i class="cube-face cube-side"></i><i class="cube-face cube-top"></i></div>';document.body.appendChild(n);
- const dx=r.left+r.width/2-start.x,dy=r.top+r.height/2-start.y,lean=dx<0?-1:1,duration=reducedMotion?140:230;
- const a=n.animate([{opacity:1,transform:'translate(0,0) scale(1.35)'},{opacity:1,transform:`translate(${dx*.10+lean*8}px,${Math.min(-22,dy*.06-30)}px) rotate(${lean*9}deg) scale(1.1)`,offset:.24},{opacity:1,transform:`translate(${dx*.58}px,${dy*.30-22}px) rotate(${lean*24}deg) scale(.92)`,offset:.60},{opacity:1,transform:`translate(${dx}px,${dy}px) rotate(${lean*42}deg) scale(${Math.min(.85,26/size)})`}],{duration,delay,easing:'cubic-bezier(.25,.55,.48,1)',fill:'forwards'});
+ const dx=r.left+r.width/2-start.x,dy=r.top+r.height/2-start.y,lean=dx<0?-1:1,duration=reducedMotion?160:380,end=Math.min(.8,26/size),hop=Math.min(-46,dy*.05-60);
+ // Pop toward the player, tumble along an arc, then squash into the box.
+ const a=n.animate([
+  {opacity:1,transform:'translate(0,0) scale(.8)',easing:'cubic-bezier(.2,.9,.3,1.3)'},
+  {opacity:1,transform:`translate(${-lean*10}px,${hop*.55}px) scale(1.55,1.4)`,offset:.16,easing:'cubic-bezier(.3,.1,.4,1)'},
+  {opacity:1,transform:`translate(${dx*.4}px,${hop+dy*.15}px) scale(1.15)`,offset:.48,easing:'cubic-bezier(.55,0,.85,.4)'},
+  {opacity:1,transform:`translate(${dx}px,${dy}px) scale(${end*1.05},${end*1.2})`,offset:.82,easing:'ease-out'},
+  {opacity:1,transform:`translate(${dx}px,${dy+5}px) scale(${end*1.5},${end*.55})`,offset:.9,easing:'ease-out'},
+  {opacity:1,transform:`translate(${dx}px,${dy-3}px) scale(${end*.85},${end*1.15})`,offset:.96},
+  {transform:`translate(${dx}px,${dy}px) scale(${end*.6})`,opacity:0}],{duration,delay,fill:'forwards'});
+ if(!reducedMotion){const sx=Math.random()<.5?1:-1;n.firstChild.animate([{transform:'rotateX(-19deg) rotateY(26deg) rotateZ(0deg)'},{transform:`rotateX(${-19-300*sx}deg) rotateY(${26+420*lean}deg) rotateZ(${lean*40}deg)`,offset:.82},{transform:`rotateX(${-19-360*sx}deg) rotateY(${26+360*lean}deg) rotateZ(0deg)`}],{duration,delay,easing:'cubic-bezier(.3,.6,.4,1)',fill:'forwards'});
+  for(let k=1;k<=3;k++){const g=n.cloneNode(true);g.style.setProperty('--ghost',.35/k);g.style.filter='blur(1px) opacity('+(.4/k)+')';g.style.zIndex=14;document.body.appendChild(g);const ga=g.animate(a.effect.getKeyframes(),{duration,delay:delay+k*28,fill:'forwards'});ga.onfinish=()=>g.remove();g.classList.add('ghost');}}
  a.onfinish=()=>{n.remove();if(stamp===generation)landingFX(targetId,type,complete);};
 }
 function act(id,point){if(!$('overlay').hidden)return false;const result=Puzzle.move(level,state,id);if(!result.ok){if(result.reason==='full')toast('Slots are full. Find a cube matching an open box.');else if(result.reason==='covered')toast('Peel the outer cubes first.');return false;}
